@@ -64,7 +64,7 @@ class ResponsiveTableExample extends React.Component {
     }
     return (
       <div>
-        <span>Please resize window to see </span>
+        <h4>Please resize window to see columns hiding (to expandable space)</h4>
         <Measure
           scroll bounds
           onResize={(contentRect) => {
@@ -122,7 +122,6 @@ class ResponsiveTableExample extends React.Component {
    * rendering method for expanding space
    */
   renderExpandRow(record, index, indent, expanded) {
-    console.log("" + indent);
     if (expanded) {
       const data = this.state.hiddenColumns.map(
         c => {
