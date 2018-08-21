@@ -1,1 +1,3 @@
-.ant-table td { white-space: nowrap; }
+/* .ant-table td { white-space: nowrap; } */
+
+.responsive-row td { white-space: nowrap; }

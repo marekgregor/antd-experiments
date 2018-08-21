@@ -2,26 +2,28 @@ import React from "react";
 import ReactDOM from "react-dom";
 import moment from "moment";
 import { Modal, Button, Table } from "antd";
-import { AutoSizer } from "react-virtualized";
 import Measure from "react-measure";
 
 import "antd/dist/antd.css";
 import "./style.css";
 
-const columns = [{
+const columnsDefinition = [{
   title: 'Name',
   dataIndex: 'name',
   width: 150,
 }, {
   title: 'Age',
   dataIndex: 'age',
-  width: 150,
+  width: 100,
 }, {
   title: 'Address',
   dataIndex: 'address',
 }, {
   title: 'Address 2',
   dataIndex: 'address2',
+}, {
+  title: 'Address 3',
+  dataIndex: 'address3',
 }];
 
 const data = [];
@@ -31,58 +33,95 @@ for (let i = 0; i < 100; i++) {
     name: `Edward King ${i}`,
     age: 32,
     address: `London, Park Lane no. ${i}`,
-    address2: `A little bit longer and longer and longer and longer and longer adress for table - London, Park Lane no. ${i}`,
+    address2: `Second line of address no. ${i}`,
+    address3: `Third line of address no. ${i}`,
   });
 }
 
-class App extends React.Component {
+class ResponsiveTableExample extends React.Component {
   state = {
-    visible: false, columns, dimensions: {
-      width: -1,
-      height: -1
-    }
+    /* manages visibility of table during resize operations, in order to suspend screen flickering */
+    visible: false,
+    /* current visible columns */
+    columns: columnsDefinition,
+    /* columns hidden in expandable part */
+    hiddenColumns: [],
   };
 
+  constructor() {
+    super();
+    this.renderExpandRow = this.renderExpandRow.bind(this);
+  }
+
   render() {
-    const { width, height } = this.state.dimensions;
+    let expandedRowRender = undefined;
+    if (this.state.hiddenColumns.length > 0) {
+      expandedRowRender = this.renderExpandRow;
+    }
     return (
       <div>
-        <AutoSizer disableHeight>
-          {
-            ({ width, height }) => {
-              console.log(`Available width: ${width}`);
-              let columns = this.recalculateColumns(this.state.columns);
-              return <Measure
-                bounds scroll
-                onResize={(contentRect) => {
-                  this.setState({ dimensions: contentRect.bounds })
-                  console.log(JSON.stringify(contentRect));
-                }}>
-                {({ measureRef }) =>
-                  <div ref={measureRef}>
-                    <Table columns={columns} dataSource={data}
-                      pagination={{ pageSize: 10 }} />
-                     {/*console.log(`Width: ${this.state.dimensions}`)*/}
-                  </div>
-                }
-              </Measure>
-            }
-          }
-        </AutoSizer>
+        <Measure
+          scroll bounds
+          onResize={(contentRect) => {
+            this.recalculateColumns(contentRect.bounds.width, contentRect.scroll.width);
+          }}>
+          {({ measureRef, measure, contentRect }) => {
+            // storing measure method reference for use in recalculateColumns()
+            this.measure = measure;
+            return (<div ref={measureRef} style={{ visibility: this.state.visible ? undefined : "hidden" }}>
+              <Table columns={this.state.columns} dataSource={data}
+                rowClassName={() => "responsive-row"}
+                pagination={{ defaultPageSize: 5 }} expandedRowRender={expandedRowRender} />
+            </div>);
+          }}
+        </Measure>
       </div>
     );
   }
 
-  recalculateColumns(columns) {
-    return columns.map((c, columnIndex) => {
-      return Object.assign({}, c,
-        {
-          render: (text, record, rowIndex) => {
-            return `${text}`;
-          }
+  recalculateColumns(availableWidth, tableWidth) {
+    console.log(`availableWidth: ${availableWidth} tableWidth: ${tableWidth}`);
+    if (availableWidth < tableWidth) {
+      // if available space is lesser than real table width => remove last column
+      const columns = this.state.columns.slice();
+      const columnToHide = columns.pop();
+      const hiddenColumns = this.state.hiddenColumns.slice();
+      hiddenColumns.splice(0, 0, columnToHide);
+      this.setState({ columns, hiddenColumns, visible: false }, () => {
+        if (this.measure) {
+          setTimeout(this.measure, 1);
+        }
+      });
+      this.lastAvailableWidth = availableWidth;
+    } else if (this.lastAvailableWidth && this.lastAvailableWidth < availableWidth
+      && this.state.hiddenColumns.length > 0) {
+      // if available space is growing and there at least one hidden column => reset column visibility
+      this.setState({ columns: columnsDefinition, hiddenColumns: [], visible: false }, () => {
+        if (this.measure) {
+          setTimeout(this.measure, 1);
+        }
+      });
+    } else {
+      this.setState({ visible: true });
+    }
+  }
+
+  expandedTableColumns = [{ title: 'Column', dataIndex: 'columnName' },
+  { title: 'Value', dataIndex: 'value' }];
+
+  renderExpandRow(record, index, indent, expanded) {
+    console.log("" + indent);
+    if (expanded && record) {
+      const data = this.state.hiddenColumns.map(
+        c => {
+          const data = { columnName: c.title, value: record[c.dataIndex] };
+          return data;
         });
-    });
+      return <Table
+        columns={this.expandedTableColumns}
+        dataSource={data} pagination={false} showHeader={false} />
+    }
   }
 }
 
-ReactDOM.render(<App />, document.getElementById("root"));
+ReactDOM.render(<ResponsiveTableExample />, document.getElementById("root"));
