@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import moment from "moment";
-import { Modal, Button, Table } from "antd";
+import { Table } from "antd";
 import Measure from "react-measure";
 
 import "antd/dist/antd.css";
@@ -37,7 +37,11 @@ for (let i = 0; i < 100; i++) {
     address3: `Third line of address no. ${i}`,
   });
 }
-
+/**
+ * Initial example of naive responsive antd table implementation, similar to Datatables component (https://datatables.net/)
+ * Columns which will not have enough spacewill be wrapped in expandable part of table.
+ * 
+ */
 class ResponsiveTableExample extends React.Component {
   state = {
     /* manages visibility of table during resize operations, in order to suspend screen flickering */
@@ -80,7 +84,7 @@ class ResponsiveTableExample extends React.Component {
   }
 
   recalculateColumns(availableWidth, tableWidth) {
-    console.log(`availableWidth: ${availableWidth} tableWidth: ${tableWidth}`);
+    // console.log(`availableWidth: ${availableWidth} tableWidth: ${tableWidth}`);
     if (availableWidth < tableWidth) {
       // if available space is lesser than real table width => remove last column
       const columns = this.state.columns.slice();
@@ -89,6 +93,7 @@ class ResponsiveTableExample extends React.Component {
       hiddenColumns.splice(0, 0, columnToHide);
       this.setState({ columns, hiddenColumns, visible: false }, () => {
         if (this.measure) {
+          // call remeasurement of table asynchrounously
           setTimeout(this.measure, 1);
         }
       });
@@ -98,20 +103,26 @@ class ResponsiveTableExample extends React.Component {
       // if available space is growing and there at least one hidden column => reset column visibility
       this.setState({ columns: columnsDefinition, hiddenColumns: [], visible: false }, () => {
         if (this.measure) {
+          // call remeasurement of table asynchrounously
           setTimeout(this.measure, 1);
         }
       });
     } else {
+      // show table if recalculation is finalized
       this.setState({ visible: true });
     }
   }
 
+  // definition of table columns in expanded space
   expandedTableColumns = [{ title: 'Column', dataIndex: 'columnName' },
   { title: 'Value', dataIndex: 'value' }];
 
+  /**
+   * rendering method for expanding space
+   */
   renderExpandRow(record, index, indent, expanded) {
     console.log("" + indent);
-    if (expanded && record) {
+    if (expanded) {
       const data = this.state.hiddenColumns.map(
         c => {
           const data = { columnName: c.title, value: record[c.dataIndex] };
