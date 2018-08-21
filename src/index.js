@@ -44,8 +44,6 @@ for (let i = 0; i < 100; i++) {
  */
 class ResponsiveTableExample extends React.Component {
   state = {
-    /* manages visibility of table during resize operations, in order to suspend screen flickering */
-    visible: false,
     /* current visible columns */
     columns: columnsDefinition,
     /* columns hidden in expandable part */
@@ -73,7 +71,7 @@ class ResponsiveTableExample extends React.Component {
           {({ measureRef, measure, contentRect }) => {
             // storing measure method reference for use in recalculateColumns()
             this.measure = measure;
-            return (<div ref={measureRef} style={{ visibility: this.state.visible ? undefined : "hidden" }}>
+            return (<div ref={measureRef}>
               <Table columns={this.state.columns} dataSource={data}
                 rowClassName={() => "responsive-row"}
                 pagination={{ defaultPageSize: 5 }} expandedRowRender={expandedRowRender} />
@@ -85,6 +83,7 @@ class ResponsiveTableExample extends React.Component {
   }
 
   recalculateColumns(availableWidth, tableWidth) {
+    const currentTimeStamp = new Date().getTime();
     // console.log(`availableWidth: ${availableWidth} tableWidth: ${tableWidth}`);
     if (availableWidth < tableWidth) {
       // if available space is lesser than real table width => remove last column
@@ -92,7 +91,7 @@ class ResponsiveTableExample extends React.Component {
       const columnToHide = columns.pop();
       const hiddenColumns = this.state.hiddenColumns.slice();
       hiddenColumns.splice(0, 0, columnToHide);
-      this.setState({ columns, hiddenColumns, visible: false }, () => {
+      this.setState({ columns, hiddenColumns }, () => {
         if (this.measure) {
           // call remeasurement of table asynchrounously
           setTimeout(this.measure, 1);
@@ -102,15 +101,12 @@ class ResponsiveTableExample extends React.Component {
     } else if (this.lastAvailableWidth && this.lastAvailableWidth < availableWidth
       && this.state.hiddenColumns.length > 0) {
       // if available space is growing and there at least one hidden column => reset column visibility
-      this.setState({ columns: columnsDefinition, hiddenColumns: [], visible: false }, () => {
+      this.setState({ columns: columnsDefinition, hiddenColumns: []}, () => {
         if (this.measure) {
           // call remeasurement of table asynchrounously
           setTimeout(this.measure, 1);
         }
       });
-    } else {
-      // show table if recalculation is finalized
-      this.setState({ visible: true });
     }
   }
 
