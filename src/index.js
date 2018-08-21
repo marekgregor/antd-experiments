@@ -64,6 +64,7 @@ class ResponsiveTableExample extends React.Component {
     }
     return (
       <div>
+        <span>Please resize window to see </span>
         <Measure
           scroll bounds
           onResize={(contentRect) => {
